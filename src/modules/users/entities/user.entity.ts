@@ -4,7 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+
+import { HelpRequest } from '../../help-requests/entities/help-request.entity';
 
 // Enum para os perfis de acesso (Regra de Negócio)
 export enum UserRole {
@@ -39,6 +42,10 @@ export class User {
   // Impacto Social: Perfis verificados (ONGs, Líderes) geram confiança
   @Column({ default: false })
   isVerified: boolean;
+
+  //lado do Usuário (OneToMany)
+  @OneToMany(() => HelpRequest, (helpRequest: HelpRequest) => helpRequest.user)
+  helpRequests: HelpRequest[];
 
   // Auditoria (DevOps): Saber quando foi criado/editado
   @CreateDateColumn()

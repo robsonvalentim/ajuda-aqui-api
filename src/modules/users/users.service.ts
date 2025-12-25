@@ -58,6 +58,15 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  // Método exclusivo para o AuthModule validar o login
+  async findByEmail(email: string): Promise<User | null> {
+    return this.usersRepository
+      .createQueryBuilder('user') // 'user' é um apelido para a tabela nessa consulta
+      .where('user.email = :email', { email })
+      .addSelect('user.password') // Aqui sim! Trazemos a senha oculta explicitamente
+      .getOne();
+  }
+
   // (Manteremos os outros métodos vazios ou padrão por enquanto)
   findAll() {
     return `This action returns all users`;
