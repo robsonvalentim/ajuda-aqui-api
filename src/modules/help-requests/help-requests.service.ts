@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm';
 import { CreateHelpRequestDto } from './dto/create-help-request.dto';
 import { HelpRequest } from './entities/help-request.entity';
 import { User, UserRole } from '../../modules/users/entities/user.entity'; // Importar User
@@ -27,23 +27,33 @@ export class HelpRequestsService {
   }
 
   // --- 1. FIND ALL (Listagem Inteligente) ---
-  findAll(user: User) {
-    // Verificamos se é Staff (Admin ou Voluntário)
+  findAll(user: User, category?: string, status?: string) {
     const isStaff =
       user.role === UserRole.ADMIN || user.role === UserRole.VOLUNTEER;
 
-    if (isStaff) {
-      // Se for Staff, vê TUDO (como era antes)
-      return this.helpRequestRepository.find({
-        relations: ['user'],
-      });
-    } else {
-      // Se for Morador comum, vê APENAS OS SEUS
-      return this.helpRequestRepository.find({
-        where: { user: { id: user.id } }, // Filtro mágico
-        relations: ['user'],
-      });
+    // 👇 2. A MUDANÇA ESTÁ AQUI:
+    // Em vez de 'any', dizemos que é um objeto de busca para a entidade HelpRequest
+    const whereOptions: FindOptionsWhere<HelpRequest> = {};
+
+    // REGRA 1: Filtro de Dono (Se não for staff)
+    if (!isStaff) {
+      whereOptions.user = { id: user.id };
     }
+
+    // REGRA 2: Filtro de Categoria
+    if (category) {
+      whereOptions.category = category; // Agora o TS sabe que 'category' existe!
+    }
+
+    // REGRA 3: Filtro de Status
+    if (status) {
+      whereOptions.status = status; // Agora o TS sabe que 'status' existe!
+    }
+
+    return this.helpRequestRepository.find({
+      where: whereOptions,
+      relations: ['user'],
+    });
   }
 
   // --- 2. FIND ONE (Detalhe Blindado) ---

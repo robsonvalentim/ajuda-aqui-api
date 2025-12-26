@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode, // <--- Adicione HttpCode aqui (boa prática para delete)
   HttpStatus, // <--- Adicione HttpStatus aqui
+  Query,
 } from '@nestjs/common';
 import { HelpRequestsService } from './help-requests.service';
 import { CreateHelpRequestDto } from './dto/create-help-request.dto';
@@ -32,10 +33,15 @@ export class HelpRequestsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard) // Blindar a listagem
-  findAll(@CurrentUser() user: User) {
-    // Passamos o usuário para o service decidir o que mostrar
-    return this.helpRequestsService.findAll(user);
+  @UseGuards(JwtAuthGuard)
+  findAll(
+    @CurrentUser() user: User,
+    // 2. Capturamos os parâmetros opcionais da URL
+    @Query('category') category?: string,
+    @Query('status') status?: string,
+  ) {
+    // Passamos tudo para o service
+    return this.helpRequestsService.findAll(user, category, status);
   }
 
   @Get(':id')
