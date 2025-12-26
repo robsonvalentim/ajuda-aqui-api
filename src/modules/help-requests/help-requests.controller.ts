@@ -10,13 +10,18 @@ import {
   HttpCode, // <--- Adicione HttpCode aqui (boa prática para delete)
   HttpStatus, // <--- Adicione HttpStatus aqui
   Query,
+  Patch,
 } from '@nestjs/common';
 import { HelpRequestsService } from './help-requests.service';
 import { CreateHelpRequestDto } from './dto/create-help-request.dto';
 // Importações de Segurança e Auth
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard'; // Ajuste o caminho se necessário
 import { CurrentUser } from '../../modules/auth/decorators/current-user.decorator'; // O decorator que criamos na Fase 3
-import { User } from '../../modules/users/entities/user.entity';
+import { User, UserRole } from '../../modules/users/entities/user.entity';
+
+//para implementar a adoção de um pedido
+import { RolesGuard } from '../../modules/auth/guards/roles.guard';
+import { Roles } from '../../modules/auth/decorators/roles.decorator';
 
 @Controller('help-requests')
 export class HelpRequestsController {
@@ -51,6 +56,17 @@ export class HelpRequestsController {
     @CurrentUser() user: User, // Passamos o usuário aqui também
   ) {
     return this.helpRequestsService.findOne(id, user);
+  }
+
+  // --- NOVA ROTA: ADOTAR PEDIDO ---
+  @Patch(':id/adopt') // Rota: PATCH /help-requests/1/adopt
+  @UseGuards(JwtAuthGuard, RolesGuard) // Proteção Dupla: Logado + Papel correto
+  @Roles(UserRole.VOLUNTEER, UserRole.ADMIN) // Apenas Voluntários ou Admins
+  adopt(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: User, // Quem está adotando?
+  ) {
+    return this.helpRequestsService.adopt(id, user);
   }
 
   @Delete(':id')

@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere } from 'typeorm';
 import { CreateHelpRequestDto } from './dto/create-help-request.dto';
-import { HelpRequest } from './entities/help-request.entity';
+import { HelpRequest, HelpRequestStatus } from './entities/help-request.entity';
 import { User, UserRole } from '../../modules/users/entities/user.entity'; // Importar User
 
 @Injectable()
@@ -47,7 +47,8 @@ export class HelpRequestsService {
 
     // REGRA 3: Filtro de Status
     if (status) {
-      whereOptions.status = status; // Agora o TS sabe que 'status' existe!
+      // Dizemos ao TS: "Trate essa string como um HelpRequestStatus"
+      whereOptions.status = status as HelpRequestStatus;
     }
 
     return this.helpRequestRepository.find({
@@ -102,5 +103,37 @@ export class HelpRequestsService {
 
     // 3. Se passou, pode deletar
     return await this.helpRequestRepository.remove(request);
+  }
+
+  // --- NOVO MÉTODO: ADOTAR PEDIDO ---
+  async adopt(id: number, volunteer: User) {
+    // 1. Buscamos o pedido (sem restrição de dono, pois o voluntário precisa achar o pedido de outro)
+    const request = await this.helpRequestRepository.findOne({
+      where: { id },
+      relations: ['user', 'volunteer'], // Trazemos para garantir que não dê erro de leitura
+    });
+
+    if (!request) {
+      throw new NotFoundException(`Pedido com ID ${id} não encontrado`);
+    }
+
+    // 2. REGRA DE NEGÓCIO: Só pode adotar se estiver ABERTO
+    if (request.status !== HelpRequestStatus.OPEN) {
+      throw new ForbiddenException(
+        'Este pedido não está mais disponível para adoção (já foi adotado ou concluído).',
+      );
+    }
+
+    // 3. REGRA OPCIONAL: Não pode adotar o próprio pedido (se quiser implementar)
+    if (request.user.id === volunteer.id) {
+      throw new ForbiddenException('Você não pode adotar seu próprio pedido.');
+    }
+
+    // 4. Executa a Adoção
+    request.volunteer = volunteer; // Vincula o voluntário
+    request.status = HelpRequestStatus.IN_PROGRESS; // Muda o status
+
+    // Salva no banco
+    return await this.helpRequestRepository.save(request);
   }
 }

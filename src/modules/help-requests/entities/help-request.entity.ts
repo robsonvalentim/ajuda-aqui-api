@@ -5,8 +5,16 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity'; // Se der erro aqui, ignore por um instante
+
+// 1. Criamos o Enum para garantir que o status seja sempre válido
+export enum HelpRequestStatus {
+  OPEN = 'ABERTO',
+  IN_PROGRESS = 'EM_ANDAMENTO',
+  CLOSED = 'CONCLUIDO',
+}
 
 @Entity('help_requests') // Nome da tabela no banco (snake_case é padrão para tabelas SQL)
 export class HelpRequest {
@@ -22,24 +30,27 @@ export class HelpRequest {
   @Column({ length: 50 })
   category: string; // Adicionado conforme sua modelagem
 
-  @Column({ length: 20, default: 'ABERTO' })
-  status: string; // Ex: ABERTO, EM_ANDAMENTO, CONCLUIDO
-
-  // Futuramente faremos o relacionamento com o User aqui (ManyToOne)
-  // @Column()
-  // userId: number;
-  // ESTA É A PARTE IMPORTANTE:
-  // @ManyToOne(() => User, (user) => user.helpRequests, { onDelete: 'CASCADE' })
-  // user: User;
-  @ManyToOne(() => User, (user: User) => user.helpRequests, {
-    onDelete: 'CASCADE',
+  // 2. Usamos o Enum na coluna status
+  @Column({
+    type: 'enum',
+    enum: HelpRequestStatus,
+    default: HelpRequestStatus.OPEN, // Todo pedido nasce ABERTO
   })
-  user: User;
+  status: HelpRequestStatus;
 
   @CreateDateColumn()
   createdAt: Date;
 
-  // Mantive este campo intencionalmente, veja a explicação abaixo
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // Relacionamento com o Dono (Quem pediu)
+  @ManyToOne(() => User, (user) => user.helpRequests, { nullable: false })
+  user: User;
+
+  // 3. NOVO: Relacionamento com o Voluntário (Quem adotou)
+  // Pode ser nulo (nullable: true) porque no começo ninguém adotou ainda
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'volunteerId' }) // Nomeamos a coluna no banco para ficar claro
+  volunteer: User;
 }
