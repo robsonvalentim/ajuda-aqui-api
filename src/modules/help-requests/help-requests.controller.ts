@@ -4,8 +4,11 @@ import {
   Post,
   Body,
   Param,
+  Delete, // <--- Adicione Delete aqui
   ParseIntPipe,
   UseGuards,
+  HttpCode, // <--- Adicione HttpCode aqui (boa prática para delete)
+  HttpStatus, // <--- Adicione HttpStatus aqui
 } from '@nestjs/common';
 import { HelpRequestsService } from './help-requests.service';
 import { CreateHelpRequestDto } from './dto/create-help-request.dto';
@@ -29,14 +32,28 @@ export class HelpRequestsController {
   }
 
   @Get()
-  findAll() {
-    return this.helpRequestsService.findAll();
+  @UseGuards(JwtAuthGuard) // Blindar a listagem
+  findAll(@CurrentUser() user: User) {
+    // Passamos o usuário para o service decidir o que mostrar
+    return this.helpRequestsService.findAll(user);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    // Note que agora o 'id' já chega aqui tipado como 'number'.
-    // O ParseIntPipe garantiu a conversão e validação.
-    return this.helpRequestsService.findOne(+id);
+  @UseGuards(JwtAuthGuard) // Blindar o detalhe
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: User, // Passamos o usuário aqui também
+  ) {
+    return this.helpRequestsService.findOne(id, user);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard) // 1. Só logado pode deletar
+  @HttpCode(HttpStatus.NO_CONTENT) // 2. Retorna 204 (Sucesso sem conteúdo) por padrão
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: User, // 3. Precisamos saber QUEM está tentando deletar
+  ) {
+    return this.helpRequestsService.remove(id, user);
   }
 }
