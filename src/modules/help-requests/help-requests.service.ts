@@ -136,4 +136,41 @@ export class HelpRequestsService {
     // Salva no banco
     return await this.helpRequestRepository.save(request);
   }
+
+  // --- NOVO MÉTODO: CONCLUIR PEDIDO ---
+  async close(id: number, user: User) {
+    // 1. Busca o pedido com os relacionamentos (Dono e Voluntário)
+    const request = await this.helpRequestRepository.findOne({
+      where: { id },
+      relations: ['user', 'volunteer'],
+    });
+
+    if (!request) {
+      throw new NotFoundException(`Pedido com ID ${id} não encontrado`);
+    }
+
+    // 2. Verifica se já está fechado
+    if (request.status === HelpRequestStatus.CLOSED) {
+      throw new ForbiddenException('Este pedido já está concluído.');
+    }
+
+    // 3. REGRA DE SEGURANÇA: Quem pode fechar?
+    // - O Dono do pedido (request.user.id === user.id)
+    // - O Voluntário responsável (request.volunteer?.id === user.id)
+    // - Um Admin (user.role === ADMIN) -> Opcional, mas útil para moderação
+    const isOwner = request.user.id === user.id;
+    const isTheVolunteer = request.volunteer?.id === user.id;
+    const isAdmin = user.role === UserRole.ADMIN;
+
+    if (!isOwner && !isTheVolunteer && !isAdmin) {
+      throw new ForbiddenException(
+        'Você não tem permissão para concluir este pedido.',
+      );
+    }
+
+    // 4. Efetiva o fechamento
+    request.status = HelpRequestStatus.CLOSED;
+
+    return await this.helpRequestRepository.save(request);
+  }
 }

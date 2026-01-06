@@ -78,4 +78,14 @@ export class HelpRequestsController {
   ) {
     return this.helpRequestsService.remove(id, user);
   }
+
+  // --- NOVA ROTA: CONCLUIR PEDIDO ---
+  @Patch(':id/close') // Rota: PATCH /help-requests/1/close
+  @UseGuards(JwtAuthGuard) // Apenas logado (qualquer nível)
+  close(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: User, // Quem está tentando fechar?
+  ) {
+    return this.helpRequestsService.close(id, user);
+  }
 }
