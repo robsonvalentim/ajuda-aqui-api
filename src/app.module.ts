@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HelpRequestsModule } from './modules/help-requests/help-requests.module';
+import { ServicesModule } from './modules/services/services.module';
 
 @Module({
   imports: [
@@ -39,6 +40,8 @@ import { HelpRequestsModule } from './modules/help-requests/help-requests.module
     AuthModule,
 
     HelpRequestsModule,
+
+    ServicesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

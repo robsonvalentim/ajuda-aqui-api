@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 
 import { HelpRequest } from '../../help-requests/entities/help-request.entity';
+import { Service } from '../../services/entities/service.entity';
 
 // Enum para os perfis de acesso (Regra de Negócio)
 export enum UserRole {
@@ -46,6 +47,11 @@ export class User {
   //lado do Usuário (OneToMany)
   @OneToMany(() => HelpRequest, (helpRequest: HelpRequest) => helpRequest.user)
   helpRequests: HelpRequest[];
+
+  // 2. NOVO: Relacionamento com Serviços Sociais
+  // Isso diz: "Um usuário pode prover VÁRIOS serviços"
+  @OneToMany(() => Service, (service) => service.provider)
+  services: Service[];
 
   // Auditoria (DevOps): Saber quando foi criado/editado
   @CreateDateColumn()
